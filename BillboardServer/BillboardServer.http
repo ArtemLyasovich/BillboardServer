@@ -1,0 +1,6 @@
+@BillboardServer_HostAddress = http://localhost:5099
+
+GET {{BillboardServer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
