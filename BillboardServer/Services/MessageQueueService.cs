@@ -1,5 +1,7 @@
 ﻿using System.Collections.Concurrent;
 
+using static BillboardServer.Consts.Consts;
+
 namespace BillboardServer.Services;
 
 public class MessageQueueService
@@ -13,7 +15,7 @@ public class MessageQueueService
         _messageQueue = new();
         _cts = new();
 
-        _currentMessage = "";
+        _currentMessage = DEFAULT_MESSAGE;
 
         _ = Task.Run(async () =>
         {
@@ -22,6 +24,10 @@ public class MessageQueueService
                 if (_messageQueue.TryDequeue(out var nextMessage))
                 {
                     _currentMessage = nextMessage;
+                }
+                else
+                {
+                    _currentMessage = DEFAULT_MESSAGE;
                 }
 
                 await Task.Delay(TimeSpan.FromMinutes(1), _cts.Token);
