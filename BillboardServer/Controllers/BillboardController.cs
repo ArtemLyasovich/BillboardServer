@@ -8,23 +8,24 @@ namespace BillboardServer.Controllers
     public class BillboardController : ControllerBase
     {
         private readonly MessageQueueService _messageQueueService;
+        private readonly MessageDisplayService _messageDisplayService;
 
-        public BillboardController(MessageQueueService messageQueueService)
+        public BillboardController(MessageQueueService messageQueueService, MessageDisplayService messageDisplayService)
         {
             _messageQueueService = messageQueueService;
+            _messageDisplayService = messageDisplayService;
         }
 
         [HttpGet]
-        public IActionResult GetCurrentMessage()
+        public IActionResult GetMessage()
         {
-            var message = _messageQueueService.GetCurrentMessage();
-            return Ok(message);
+            return Ok(_messageDisplayService.GetCurrentMessage());
         }
 
         [HttpPost]
         public IActionResult PostMessage([FromBody] string message)
         {
-            if (string.IsNullOrWhiteSpace(message))
+            if (string.IsNullOrEmpty(message))
             {
                 return BadRequest("Message cannot be empty.");
             }
