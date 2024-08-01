@@ -22,13 +22,13 @@ public class MessageDisplayService
                 if (_messageQueueService.TryDequeueMessage(out var nextMessage))
                 {
                     _currentMessage = nextMessage;
+                    await Task.Delay(TimeSpan.FromMinutes(1), _cts.Token);
                 }
                 else
                 {
                     _currentMessage = DEFAULT_MESSAGE;
+                    await Task.Delay(TimeSpan.FromSeconds(1), _cts.Token);
                 }
-
-                await Task.Delay(TimeSpan.FromMinutes(1), _cts.Token);
             }
         }, _cts.Token);
     }
