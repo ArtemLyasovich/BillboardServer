@@ -1,6 +1,8 @@
 using BillboardServer.Services;
 using Microsoft.AspNetCore.Mvc;
 
+using static BillboardServer.Consts.Consts;
+
 namespace BillboardServer.Controllers
 {
     [ApiController]
@@ -19,19 +21,20 @@ namespace BillboardServer.Controllers
         [HttpGet]
         public IActionResult GetMessage()
         {
-            return Ok(_messageDisplayService.GetCurrentMessage());
+            var currentMessage = _messageDisplayService.GetCurrentMessage();
+            return Ok(currentMessage.Content);
         }
 
         [HttpPost]
         public IActionResult PostMessage([FromBody] string message)
         {
-            if (string.IsNullOrEmpty(message))
+            if (string.IsNullOrWhiteSpace(message))
             {
-                return BadRequest("Message cannot be empty.");
+                return BadRequest(ERROR_EMPTY_MESSAGE);
             }
 
             _messageQueueService.EnqueueMessage(message);
-            return Ok();
+            return Ok(SUCCESS_MESSAGE_ENQUEUED);
         }
     }
 }

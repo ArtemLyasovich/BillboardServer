@@ -1,46 +1,86 @@
-﻿using static BillboardServer.Consts.Consts;
+﻿using BillboardServer.Models;
+using BillboardServer.Repositories;
+
+using static BillboardServer.Consts.Consts;
 
 namespace BillboardServer.Services;
 
 public class MessageDisplayService
 {
     private readonly MessageQueueService _messageQueueService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly CancellationTokenSource _cts;
-    private string _currentMessage;
+    private Message _currentMessage;
 
-    public MessageDisplayService(MessageQueueService messageQueueService)
+    public MessageDisplayService(MessageQueueService messageQueueService, IServiceProvider serviceProvider)
     {
         _messageQueueService = messageQueueService;
+        _serviceProvider = serviceProvider;
         _cts = new CancellationTokenSource();
+        _currentMessage = CreateDefaultMessage();
 
-        _currentMessage = DEFAULT_MESSAGE;
+        StartMessageProcessing();
+    }
 
+    private static Message CreateDefaultMessage()
+    {
+        return new Message
+        {
+            Content = DEFAULT_MESSAGE,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+
+    private void StartMessageProcessing()
+    {
         _ = Task.Run(async () =>
         {
             while (!_cts.Token.IsCancellationRequested)
             {
-                if (_messageQueueService.TryDequeueMessage(out var nextMessage))
-                {
-                    _currentMessage = nextMessage;
-                    await Task.Delay(TimeSpan.FromMinutes(1), _cts.Token);
-                }
-                else
-                {
-                    _currentMessage = DEFAULT_MESSAGE;
-                    await Task.Delay(TimeSpan.FromSeconds(1), _cts.Token);
-                }
+                ProcessNextMessage();
+                await Task.Delay(GetDelay(), _cts.Token);
             }
         }, _cts.Token);
     }
 
-    public string GetCurrentMessage()
+    private void ProcessNextMessage()
+    {
+        if (_messageQueueService.TryDequeueMessage(out var nextMessage))
+        {
+            _currentMessage = nextMessage;
+        }
+        else
+        {
+            _currentMessage = CreateDefaultMessage();
+        }
+    }
+
+    private TimeSpan GetDelay()
+    {
+        return _currentMessage.Content == DEFAULT_MESSAGE
+            ? TimeSpan.FromSeconds(1)
+            : TimeSpan.FromMinutes(1);
+    }
+
+    public Message GetCurrentMessage()
     {
         return _currentMessage;
     }
 
-    public void Stop()
+    public async Task Stop()
     {
+        await SaveRemainingMessages();
+
         _cts.Cancel();
         _cts.Dispose();
+    }
+
+    private async Task SaveRemainingMessages()
+    {
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var billboardRepository = scope.ServiceProvider.GetRequiredService<BillboardRepository>();
+            await _messageQueueService.SaveRemainingMessagesToDatabase(billboardRepository);
+        }
     }
 }
