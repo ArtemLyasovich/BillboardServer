@@ -13,15 +13,22 @@ public class BillboardDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Message>()
-            .HasKey(m => m.Id);
+        modelBuilder.Entity<Message>(entity =>
+        {
+            entity.ToTable("messages");
 
-        modelBuilder.Entity<Message>()
-            .Property(m => m.Content)
-            .IsRequired();
+            entity.HasKey(m => m.Id);
 
-        modelBuilder.Entity<Message>()
-            .Property(m => m.CreatedAt)
-            .IsRequired();
+            entity.Property(m => m.Id)
+                .HasColumnName("id");
+
+            entity.Property(m => m.Content)
+                .IsRequired()
+                .HasColumnName("content");
+
+            entity.Property(m => m.CreatedAt)
+                .IsRequired()
+                .HasColumnName("createdat");
+        });
     }
 }
