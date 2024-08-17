@@ -8,13 +8,15 @@ namespace BillboardServer.Services;
 public class MessageDisplayService
 {
     private readonly MessageQueueService _messageQueueService;
+    private readonly ILogger<MessageDisplayService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly CancellationTokenSource _cts;
     private Message _currentMessage;
 
-    public MessageDisplayService(MessageQueueService messageQueueService, IServiceProvider serviceProvider)
+    public MessageDisplayService(MessageQueueService messageQueueService, IServiceProvider serviceProvider, ILogger<MessageDisplayService> logger)
     {
         _messageQueueService = messageQueueService;
+        _logger = logger;
         _serviceProvider = serviceProvider;
         _cts = new CancellationTokenSource();
         _currentMessage = CreateDefaultMessage();
@@ -48,6 +50,7 @@ public class MessageDisplayService
         if (_messageQueueService.TryDequeueMessage(out var nextMessage))
         {
             _currentMessage = nextMessage;
+            _logger.LogInformation("{0} - Message dequeued and displayed: \"{1}\"", MESSAGE_DISPLAY_SERVICE_LOGID, _currentMessage.Content);
         }
         else
         {

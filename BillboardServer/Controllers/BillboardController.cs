@@ -3,38 +3,44 @@ using Microsoft.AspNetCore.Mvc;
 
 using static BillboardServer.Consts.Consts;
 
-namespace BillboardServer.Controllers
+namespace BillboardServer.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+public class BillboardController : ControllerBase
 {
-    [ApiController]
-    [Route("[controller]")]
-    public class BillboardController : ControllerBase
+    private readonly MessageQueueService _messageQueueService;
+    private readonly MessageDisplayService _messageDisplayService;
+    private readonly ILogger<BillboardController> _logger;
+
+    public BillboardController(MessageQueueService messageQueueService,
+                               MessageDisplayService messageDisplayService,
+                               ILogger<BillboardController> logger)
     {
-        private readonly MessageQueueService _messageQueueService;
-        private readonly MessageDisplayService _messageDisplayService;
+        _messageQueueService = messageQueueService;
+        _messageDisplayService = messageDisplayService;
+        _logger = logger;
+    }
 
-        public BillboardController(MessageQueueService messageQueueService, MessageDisplayService messageDisplayService)
+    [HttpGet]
+    public IActionResult GetMessage()
+    {
+        var currentMessage = _messageDisplayService.GetCurrentMessage();
+        return Ok(currentMessage.Content);
+    }
+
+    [HttpPost]
+    public IActionResult PostMessage([FromBody] string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
         {
-            _messageQueueService = messageQueueService;
-            _messageDisplayService = messageDisplayService;
+            _logger.LogWarning("{0} - Received an empty or whitespace message.", CONTROLLER_LOGID);
+            return BadRequest(ERROR_EMPTY_MESSAGE);
         }
 
-        [HttpGet]
-        public IActionResult GetMessage()
-        {
-            var currentMessage = _messageDisplayService.GetCurrentMessage();
-            return Ok(currentMessage.Content);
-        }
+        _logger.LogInformation("{0} - Received message: {1}", CONTROLLER_LOGID, message);
 
-        [HttpPost]
-        public IActionResult PostMessage([FromBody] string message)
-        {
-            if (string.IsNullOrWhiteSpace(message))
-            {
-                return BadRequest(ERROR_EMPTY_MESSAGE);
-            }
-
-            _messageQueueService.EnqueueMessage(message);
-            return Ok(SUCCESS_MESSAGE_ENQUEUED);
-        }
+        _messageQueueService.EnqueueMessage(message);
+        return Ok(SUCCESS_MESSAGE_ENQUEUED);
     }
 }
